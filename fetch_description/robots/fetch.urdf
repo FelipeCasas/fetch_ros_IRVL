@@ -369,12 +369,12 @@
   </link>
 
 
-  <joint name="wrist_roll_joint" type="continuous">
+  <joint name="wrist_roll_joint" type="revolute">
     <origin rpy="0 0 0" xyz="0.1385 0 0" />
     <parent link="wrist_flex_link" />
     <child link="wrist_roll_link" />
     <axis xyz="1 0 0" />
-    <limit effort="7.36" velocity="2.268" />
+    <limit effort="7.36" lower="-3.16" upper="3.16" velocity="2.268" />
     <dynamics damping="5.0" />
   </joint>
 
