@@ -343,6 +343,8 @@
     <dynamics damping="1.0" />
     <limit effort="25.7" lower="-2.16" upper="2.16" velocity="2.268" />
   </joint>
+
+
   <link name="wrist_roll_link">
     <inertial>
       <origin rpy="0 0 0" xyz="0.0095 0.0004 -0.0002" />
@@ -365,6 +367,8 @@
       </geometry>
     </collision>
   </link>
+
+
   <joint name="wrist_roll_joint" type="continuous">
     <origin rpy="0 0 0" xyz="0.1385 0 0" />
     <parent link="wrist_flex_link" />
@@ -373,9 +377,41 @@
     <limit effort="7.36" velocity="2.268" />
     <dynamics damping="5.0" />
   </joint>
+
+  <link name="ati_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="${-0.0333/2} 0 0 " />
+      <mass value="0.255" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+    <visual>
+      <origin rpy="0 ${pi/2} 0" xyz="${-0.0333/2} 0 0 " />
+      <geometry>
+        <cylinder length="0.0333" radius="0.0377"/>
+      </geometry>
+      <material name="">
+        <color rgba="0.75 0.75 0.75 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 ${pi/2} 0" xyz="${-0.0333/2} 0 0" />
+      <geometry>
+        <cylinder length="0.0333" radius="0.058"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="ati_axis" type="fixed">
+    <origin rpy="0.894 0 0" xyz="${0.0190+0.0333} 0 0" />
+    <parent link="wrist_roll_link" />
+    <child link="ati_link" />
+    <axis xyz="0 0 0" />
+  </joint>
+
+
   <link name="gripper_link">
     <inertial>
-      <origin rpy="0 0 0" xyz="-0.0900 -0.0001 -0.0017" />
+      <origin rpy="0 0 0" xyz="-0.0900 -0.0001 -0.0017" /> <!-- May require change!-->
       <mass value="1.5175" />
       <inertia ixx="0.0013" ixy="-0.0" ixz="0.0" iyy="0.0019" iyz="-0.0" izz="0.0024" />
     </inertial>
@@ -392,12 +428,15 @@
       </geometry>
     </collision>
   </link>
+
   <joint name="gripper_axis" type="fixed">
-    <origin rpy="0 0 0" xyz="0.16645 0 0" />
-    <parent link="wrist_roll_link" />
+    <origin rpy="0 0 0" xyz="${0.16645-0.019} 0 0" />
+    <parent link="ati_link" />
     <child link="gripper_link" />
     <axis xyz="0 1 0" />
   </joint>
+
+
   <link name="r_gripper_finger_link">
     <inertial>
       <origin rpy="0 0 0" xyz="-0.01 0 0" />
