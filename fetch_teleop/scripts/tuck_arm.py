@@ -106,7 +106,7 @@ class TuckThread(Thread):
 
         joints = ["torso_lift_joint", "shoulder_pan_joint", "shoulder_lift_joint", "upperarm_roll_joint",
                   "elbow_flex_joint", "forearm_roll_joint", "wrist_flex_joint", "wrist_roll_joint"]
-        pose = [0.12, 1.32, 1.40, -0.28, 1.72, 0.0, 1.66, -0.894]
+        pose = [0.12, 1.32, 1.40, -0.28, 1.72, 0.0, 1.66, -0.8287]
         while not rospy.is_shutdown():
             result = self.client.moveToJointPosition(joints,
                                                      pose,

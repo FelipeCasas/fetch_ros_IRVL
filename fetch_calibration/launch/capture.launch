@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="velocity_factor" default="1.0" />
+  <arg name="velocity_factor" default="0.5" />
 
   <!-- Disable auto white balance and exposure -->
   <node pkg="fetch_calibration" type="camera_reconfigure.py" name="camera_reconfigure" args="--disable" />

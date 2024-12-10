@@ -1,8 +1,14 @@
 # fetch_ros_IRVL
 
-ROS Components for Robots from Fetch Robotics used at the Intelligent Robotics and Vision Lab at the University of Texas at Dallas. Our Fetch Robot uses an ATI-Gamma F/T sensor at the wrist; in this forked repository you will find the updated .urdf and Moveit cofiguration files.
+ROS Components for Robots from Fetch Robotics used at the Intelligent Robotics and Vision Lab at the University of Texas at Dallas. Our Fetch Robot uses an ATI-Gamma F/T sensor at the wrist; in this forked repository you will find the updated components for our robot, such as the new .urdf, moveit configuration, and so on. 
 
-# fetch_ros
+## New .Urdf 
+As mentioned before, our Fetch robot is equipped with an ATI-Gamma force and torque sensor at the wrist. Consequently, the original .urdf is can no longer be used for the proper control of the robot. 
+
+
+
+
+# fetch_ros Original Readme.md
 
 Open ROS Components for Robots from Fetch Robotics
 
