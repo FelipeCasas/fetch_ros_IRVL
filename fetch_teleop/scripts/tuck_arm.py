@@ -92,7 +92,7 @@ class TuckThread(Thread):
         # So we are adding a box above the base of the robot
         scene = PlanningSceneInterface("base_link")
         keepout_pose = Pose()
-        keepout_pose.position.z = 0.375+0.07
+        keepout_pose.position.z = 0.375+0.11
         keepout_pose.orientation.w = 1.0
         ground_pose = Pose()
         ground_pose.position.z = -0.03
@@ -106,7 +106,7 @@ class TuckThread(Thread):
 
         joints = ["torso_lift_joint", "shoulder_pan_joint", "shoulder_lift_joint", "upperarm_roll_joint",
                   "elbow_flex_joint", "forearm_roll_joint", "wrist_flex_joint", "wrist_roll_joint"]
-        pose = [0.12, 1.32, 1.40, -0.28, 1.72, 0.0, 1.66, -0.8287]
+        pose = [0.15, 1.32, 1.40, -0.28, 1.77, 0.0, 1.435, -2.367]
         while not rospy.is_shutdown():
             result = self.client.moveToJointPosition(joints,
                                                      pose,
