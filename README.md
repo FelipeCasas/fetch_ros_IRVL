@@ -38,9 +38,9 @@ To calibrate our updated robot we had to make some adjustments to the files used
 2) The 4 LED positions were updated in [capture.yaml](/fetch_calibration/config/capture.yaml). The original positions are with respect to the original *wrist_roll_joint*; we used a simple transformation to devise the new positions. [point_angle_rotation.py](/fetch_calibration/config/point_angle_rotation.py)
 3) After modifying the files you can follow the instructions in the [Fetch and Freight manual](https://docs.fetchrobotics.com/calibration.html) to calibrate. Note that after running the command:
 ```Shell
-    calibrate_robot --arm --install
+    calibrate_robot --arm --install --velocity-factor=0.5
 ```
-If you have sudo privilege the robot drivers will restart immediately after performing the calibration. i.e. the arm will become unactuated and fall. 
+If you have sudo privilege the robot drivers will restart immediately after performing the calibration. i.e. the arm will become unactuated and fall. We also recommend using the *velocity-factor* argument to reduce the speed of the robot.
 
 ### Notes
 - The tuck_arm routine [tuck_arm.py](/fetch_teleop/scripts/tuck_arm.py) was modified to account for our new robot model and to ensure no collisions with the installed equipment. For our robot the script was located within the '/opt/ros/melodic/lib/fetch_teleop/' directory.
