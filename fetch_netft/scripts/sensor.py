@@ -1,18 +1,14 @@
 #!/usr/bin/env python
 
-
 import socket
 import struct
 from threading import Thread
 from time import sleep
-from std_msgs.msg import String
-import rospy
-from std_msgs.msg import Int32
 
 class Sensor:
 	'''Class manager for ATI Force/Torque sensor via UDP/RDT.
 	'''
-	def __init__(self, ip, f):
+	def __init__(self, ip= "10.42.42.41", f=float(100)):
 		'''Initialization
 
 		Args:
@@ -22,21 +18,17 @@ class Sensor:
 		# Initialization
 		self.ip = ip
 		self.port = 49152
-		#self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		#self.sock.connect((ip, self.port))
+		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		self.sock.connect((ip, self.port))
 		self.mean = [0] * 6
 		self.stream = False
 		
 		# Initialize ROS node
 		topic = "sensor_msgs/NetFT"
 		node = "ft_sensor"
-		self.pub = rospy.Publisher(topic,Int32, queue_size=10)
-		print("SDAS")
-		rospy.init_node(node, anonymous=True)
-		print("SDAS")
-		self.rate = rospy.rate(f)
+		self.rate = f
+		self.data = []
 
-		self.publish()
 
 
 	def send(self, command, count = 0):
@@ -73,12 +65,9 @@ class Sensor:
 		""" Publish information to the ROStopic
 		
 		"""
-		#msg.data = self.measurement
-		msg = 100 
-		rospy.loginfo("Publishing",)
-
-		self.pub.publish(msg)
-		self.rate.sleep()
+		self.data = self.measurement
+	
+		sleep(1/self.rate)
 		return
 
 	def tare(self, n = 10): # Replace by Software bias
@@ -220,8 +209,14 @@ class Sensor:
 
 
 if __name__ == "__main__":
+	# Raw data
 	ip = "10.42.42.41"
-	f = 100
-	print("SDAS")
+	f = float(10)
 	s = Sensor(ip,f)
-	print("SDAS")
+	s.startStreaming()
+	
+	for i in range(50):
+		print(s.measurement())
+		print(s.torque())
+		sleep(1/f)
+	s.stopStreaming()
