@@ -4,7 +4,7 @@ ROS Components for Robots from Fetch Robotics used at the Intelligent Robotics a
 
 ## New .Urdf 
 
-As mentioned before, our Fetch robot is equipped with an ATI-Gamma force and torque sensor at the wrist. Consequently, the original .urdf can no longer be used for the proper control of the robot. We created a new .urdf [fetch.urdf](/fetch_description/fetch.urdf) to replace the original at the fetch_description base ros package located within the '/opt/ros/' directory. 
+As mentioned before, our Fetch robot is equipped with an ATI-Gamma force and torque sensor at the wrist. Consequently, the original .urdf can no longer be used for the proper control of the robot. We created a new .urdf [fetch.urdf](/fetch_description/robots/fetch.urdf) to replace the original at the fetch_description base ros package located within the '/opt/ros/' directory. 
 
 <div style="text-align:center;">
 <img src="/media/robot.jpeg"  height="500" alt="IRVL Fetch Robot">
