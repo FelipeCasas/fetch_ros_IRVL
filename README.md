@@ -52,6 +52,7 @@ We have also changed the original Fetch fingers to a adapted version of the [UMI
 <div style="text-align:center;">
 <img src="/media/fingers.jpeg" height="400" alt="Deformable Fingers Image">
 </div>
+
 # fetch_ros Original Readme.md
 
 Open ROS Components for Robots from Fetch Robotics
