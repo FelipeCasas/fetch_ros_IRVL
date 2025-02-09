@@ -1,14 +1,15 @@
 #!/usr/bin/env python
-
 import socket
 import struct
 from threading import Thread
-from time import sleep
+import rospy
+from geometry_msgs.msg import WrenchStamped
+import time
 
 class Sensor:
 	'''Class manager for ATI Force/Torque sensor via UDP/RDT.
 	'''
-	def __init__(self, ip= "10.42.42.41", f=float(100)):
+	def __init__(self, ip= "10.42.42.41", f=float(60)):
 		'''Initialization
 
 		Args:
@@ -20,22 +21,18 @@ class Sensor:
 		self.port = 49152
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sock.connect((ip, self.port))
-		self.mean = [0] * 6
 		self.stream = False
+		self.cpf= 10000 #Counts per Force (NetFT Configuration)
+		self.cpt= 10000 #Counts per Torque (NetFT Configuration)
 		
 		# Initialize ROS node
-		topic = "sensor_msgs/NetFT"
-		node = "ft_sensor"
-		self.rate = f
+		rospy.init_node('ft_sensor', anonymous = True)
+		self.pub = rospy.Publisher('/gripper/force_torque', WrenchStamped, queue_size=10)
+		self.rate = rospy.Rate(f)
 		self.data = []
 
-
-
 	def send(self, command, count = 0):
-		'''Send a given command to the Net F/T box with specified sample count.
-
-		This function sends the given RDT command to the Net F/T box, along with
-		the specified sample count, if needed.
+		'''Send a  command to the NetFT box with specified sample count.
 
 		Args:
 			command (int): The RDT command.
@@ -58,112 +55,15 @@ class Sensor:
 		'''
 		rawdata = self.sock.recv(1024)
 		data = struct.unpack('!IIIiiiiii', rawdata)[3:]
-		self.data = [data[i] - self.mean[i] for i in range(6)] # Replace by Software bias
+		self.data = [data[i] for i in range(6)] # Replace by Software bias
 		return self.data
-	
-	def publish(self):
-		""" Publish information to the ROStopic
-		
-		"""
-		self.data = self.measurement
-	
-		sleep(1/self.rate)
-		return
-
-	def tare(self, n = 10): # Replace by Software bias
-		'''Tare the sensor.
-
-		This function takes a given number of readings from the sensor
-		and averages them. This mean is then stored and subtracted from
-		all future measurements.
-
-		Args:
-			n (int, optional): The number of samples to use in the mean.
-				Defaults to 10.
-
-		Returns:
-			list of float: The mean values calculated. 
-		'''
-		self.mean = [0] * 6
-		self.getMeasurements(n = n)
-		mean = [0] * 6
-		for i in range(n):
-			self.receive()
-			for i in range(6):
-				mean[i] += self.measurement()[i] / float(n)
-		self.mean = mean
-		return mean
-
-	def zero(self): # Replace by Software bias
-		'''Remove the mean found with `tare` to start receiving raw sensor values.'''
-		self.mean = [0] * 6
 
 	def receiveHandler(self):
 		'''A handler to receive and store data.'''
 		while self.stream:
 			self.receive()
-
-	def getMeasurement(self):
-		'''Get a single measurement from the sensor
-
-		Request a single measurement from the sensor and return it. If
-		The sensor is currently streaming, started by running `startStreaming`,
-		then this function will simply return the most recently returned value.
-
-		Returns:
-			list of float: The force and torque values received. The first three
-				values are the forces recorded, and the last three are the measured
-				torques.
-		'''
-		self.getMeasurements(1)
-		self.receive()
-		return self.data
-
-	def measurement(self):
-		'''Get the most recent force/torque measurement
-
-		Returns:
-			list of float: The force and torque values received. The first three
-				values are the forces recorded, and the last three are the measured
-				torques.
-		'''
-		return self.data
-
-	def getForce(self):
-		'''Get a single force measurement from the sensor
-
-		Request a single measurement from the sensor and return it.
-
-		Returns:
-			list of float: The force values received.
-		'''
-		return self.getMeasurement()[:3]
-
-	def force(self):
-		'''Get the most recent force measurement
-
-		Returns:
-			list of float: The force values received.
-		'''
-		return self.measurement()[:3]
-
-	def getTorque(self):
-		'''Get a single torque measurement from the sensor
-
-		Request a single measurement from the sensor and return it.
-
-		Returns:
-			list of float: The torque values received.
-		'''
-		return self.getMeasurement()[3:]
-
-	def torque(self):
-		'''Get the most recent torque measurement
-
-		Returns:
-			list of float: The torque values received.
-		'''
-		return self.measurement()[3:]
+			self.publish_to_ros()
+			self.rate.sleep()
 
 	def startStreaming(self, handler = True):
 		'''Start streaming data continuously
@@ -179,7 +79,7 @@ class Sensor:
 				used with `measurement`, `force`, and `torque`. If False the
 				measurements must be received manually. Defaults to True.
 		'''
-		self.getMeasurements(0)
+		self.getMeasurements(0) # Signals NetFT to stream
 		if handler:
 			self.stream = True
 			self.thread = Thread(target = self.receiveHandler)
@@ -204,19 +104,33 @@ class Sensor:
 		`startStreaming`.
 		'''
 		self.stream = False
-		sleep(0.1)
-		self.send(0)
+		time.sleep(0.1)
+		self.send(0) #Sends signal to NetFT to stop
+		
+	def publish_to_ros(self):
+		'''Publish the current force and torque data to ROS topic.
+		'''
+		#! Missing transformation from step count to force and torque value
+		msg = WrenchStamped()
+		msg.header.stamp = rospy.Time.now()
+		msg.header.frame_id = "ati_link"  
+		msg.wrench.force.x = self.data[0]/self.cpf
+		msg.wrench.force.y = self.data[1]/self.cpf
+		msg.wrench.force.z = self.data[2]/self.cpf
+		msg.wrench.torque.x = self.data[3]/self.cpt
+		msg.wrench.torque.y = self.data[4]/self.cpt
+		msg.wrench.torque.z = self.data[5]/self.cpt
+		self.pub.publish(msg)
 
 
 if __name__ == "__main__":
-	# Raw data
-	ip = "10.42.42.41"
-	f = float(10)
-	s = Sensor(ip,f)
-	s.startStreaming()
-	
-	for i in range(50):
-		print(s.measurement())
-		print(s.torque())
-		sleep(1/f)
-	s.stopStreaming()
+	frequency = rospy.get_param('/ft_sensor/frequency', 60.0)
+	sensor = Sensor(f=frequency)
+
+	try:
+		sensor.startStreaming()
+		rospy.loginfo("Starting Net FT Streaming at " + str(frequency) +" Hz." )
+		rospy.spin() # Keep node alive
+	finally:
+		sensor.stopStreaming()
+		rospy.loginfo("Net FT Streaming stopped")

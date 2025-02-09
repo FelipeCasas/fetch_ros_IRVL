@@ -1,0 +1,9 @@
+<launch>
+    <arg name = "frequency" default = "60.0"/>
+
+    <!-- Launch the sensor node with a parameter for frequency -->
+    <node pkg="fetch_netft" type="sensor.py" name="ft_sensor" output="screen">
+        <!-- Pass frequency as a command line argument -->
+        <param name="frequency" value="$(arg frequency)" />
+    </node>
+</launch>
