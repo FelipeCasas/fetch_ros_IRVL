@@ -18,16 +18,16 @@ class Sensor:
 		'''
 		# Initialization
 		self.ip = ip
-		self.port = 49152
+		self.port = 49152 #UDP/RDT port
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sock.connect((ip, self.port))
 		self.stream = False
-		self.cpf= 10000 #Counts per Force (NetFT Configuration)
-		self.cpt= 10000 #Counts per Torque (NetFT Configuration)
+		self.cpf= 163.82699 #Counts per Force (NetFT Configuration)
+		self.cpt= 6535.9477 #Counts per Torque (NetFT Configuration)
 		
 		# Initialize ROS node
 		rospy.init_node('ft_sensor', anonymous = True)
-		self.pub = rospy.Publisher('/gripper/force_torque', WrenchStamped, queue_size=10)
+		self.pub = rospy.Publisher('/gripper/ft_sensor', WrenchStamped, queue_size=10)
 		self.rate = rospy.Rate(f)
 		self.data = []
 
