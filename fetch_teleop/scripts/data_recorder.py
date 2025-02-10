@@ -361,7 +361,8 @@ class RGBD_Recorder(Thread):
         self.timestamps = []
 
         # Ensure output directory exists
-        os.makedirs(self.output_dir, exist_ok=True)
+        if (not os.path.exists(self.output_dir)):
+            os.mkdir(self.output_dir)
 
 
         if camera  == 'Fetch':
