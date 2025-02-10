@@ -59,14 +59,14 @@ class Sensor:
 		'''
 		rawdata = self.sock.recv(1024)
 		data = struct.unpack('!IIIiiiiii', rawdata)[3:]
-		self.data = [data[i] for i in range(6)] # Replace by Software bias
+		with self.lock():
+			self.data = [data[i] for i in range(6)] # Replace by Software bias
 		return self.data
 
 	def receiveHandler(self):
 		'''A handler to receive and store data.'''
 		while self.stream:
-			with self.lock:
-				self.receive()
+			self.receive()
 			
 
 	def startStreaming(self, handler = True):
