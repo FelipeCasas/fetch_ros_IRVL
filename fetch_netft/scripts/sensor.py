@@ -81,17 +81,28 @@ class Sensor:
 		
 	def publish_to_ros(self):
 		'''Publish the current force and torque data to ROS topic.
+
+		URDF coordinate frame of ati_link is not the same as ATI sensor output.
+		The translation is:
+			URDF axis -> netFT axis
+			- fx -> fz
+			- fy -> - fx
+			- fz -> - fy
+			- tx -> tz
+			- ty -> -tx
+			- tz -> -ty
 		'''
 		#! Missing transformation from step count to force and torque value
 		msg = WrenchStamped()
 		msg.header.stamp = rospy.Time.now()
 		msg.header.frame_id = "ati_link"  
-		msg.wrench.force.x = self.data[0]/self.cpf
-		msg.wrench.force.y = self.data[1]/self.cpf
-		msg.wrench.force.z = self.data[2]/self.cpf
-		msg.wrench.torque.x = self.data[3]/self.cpt
-		msg.wrench.torque.y = self.data[4]/self.cpt
-		msg.wrench.torque.z = self.data[5]/self.cpt
+		
+		msg.wrench.force.x = self.data[2]/self.cpf
+		msg.wrench.force.y = -1.0 * self.data[0]/self.cpf
+		msg.wrench.force.z = -1.0 * self.data[1]/self.cpf
+		msg.wrench.torque.x = self.data[5]/self.cpt
+		msg.wrench.torque.y = -1.0 * self.data[3]/self.cpt
+		msg.wrench.torque.z = -1.0 * self.data[4]/self.cpt
 		self.pub.publish(msg)
 
 
