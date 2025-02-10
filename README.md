@@ -6,9 +6,9 @@ ROS Components for Robots from Fetch Robotics used at the Intelligent Robotics a
 
 As mentioned before, our Fetch robot is equipped with an ATI-Gamma force and torque sensor at the wrist. Consequently, the original .urdf can no longer be used for the proper control of the robot. We created a new .urdf [fetch.urdf](/fetch_description/robots/fetch.urdf) to replace the original at the fetch_description base ros package located within the '/opt/ros/' directory. 
 
-<div style="text-align:center;">
+<p align="center">
 <img src="./media/robot.jpeg"  height="500" alt="IRVL Fetch Robot">
-</div>
+</p>
 
 Replacing the original .urdf file will make the robot boot with the new robot representation which will respect the new joint limits when using teleoperation. In the case that the robot has been calibrated the change will only take effect if the calibration is reseted to it's factory model. You can do this by running:
 
@@ -59,9 +59,9 @@ Our published values are with respect to our fetch.urdf `ati_link`.
 ## New Deformable Fingers
 We have also changed the original Fetch fingers to a adapted version of the [UMI deformable fingers](https://umi-gripper.github.io/). Both .urdfs modeling the original fingers and the new deformable fingers are included in the [fetch_description](/fetch_description/robots/) package. 
 
-<div style="text-align:center;">
+<p align="center">
 <img src="./media/fingers.jpeg" height="400" alt="Deformable Fingers Image">
-</div>
+</p>
 
 # fetch_ros Original Readme.md
 
