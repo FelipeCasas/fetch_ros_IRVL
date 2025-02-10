@@ -13,7 +13,7 @@ import rospkg
 import rospy
 from datetime import datetime
 from sensor_msgs.msg import JointState, Image, CameraInfo, Imu
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, WrenchStamped
 from moveit_python import MoveGroupInterface, PlanningSceneInterface
 from moveit_msgs.msg import MoveItErrorCodes
 import csv
@@ -21,204 +21,6 @@ import numpy as np
 import message_filters
 import ros_numpy
 import cv2
-import socket
-import struct
-from time import sleep
-
-#Net FT com class
-class Sensor:
-	'''Class manager for ATI Force/Torque sensor via UDP/RDT.
-	'''
-	def __init__(self, ip= "10.42.42.41", f=float(100)):
-		'''Initialization
-
-		Args:
-			ip (str): The IP address of the Net F/T box.
-			f (int): Frequency of ROS publishing (Hz)
-		'''
-		# Initialization
-		self.ip = ip
-		self.port = 49152
-		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		self.sock.connect((ip, self.port))
-		self.mean = [0] * 6
-		self.stream = False
-		
-		# Initialize ROS node
-		topic = "sensor_msgs/NetFT"
-		node = "ft_sensor"
-		self.rate = f
-		self.data = None
-
-
-
-	def send(self, command, count = 0):
-		'''Send a given command to the Net F/T box with specified sample count.
-
-		This function sends the given RDT command to the Net F/T box, along with
-		the specified sample count, if needed.
-
-		Args:
-			command (int): The RDT command.
-			count (int, optional): The sample count to send. Defaults to 0.
-		'''
-		header = 0x1234
-		message = struct.pack('!HHI', header, command, count)
-		self.sock.send(message)
-
-	def receive(self): #Receive measurements
-		'''Receives and unpacks a response from the Net F/T box.
-
-		This function receives and unpacks an RDT response from the Net F/T
-		box and saves it to the data class attribute.
-
-		Returns:
-			list of float: The force and torque values received. The first three
-				values are the forces recorded, and the last three are the measured
-				torques.
-		'''
-		rawdata = self.sock.recv(1024)
-		data = struct.unpack('!IIIiiiiii', rawdata)[3:]
-		self.data = [data[i] - self.mean[i] for i in range(6)] # Replace by Software bias
-		return self.data
-	
-
-	def tare(self, n = 10): # Replace by Software bias
-		'''Tare the sensor.
-
-		This function takes a given number of readings from the sensor
-		and averages them. This mean is then stored and subtracted from
-		all future measurements.
-
-		Args:
-			n (int, optional): The number of samples to use in the mean.
-				Defaults to 10.
-
-		Returns:
-			list of float: The mean values calculated. 
-		'''
-		self.mean = [0] * 6
-		self.getMeasurements(n = n)
-		mean = [0] * 6
-		for i in range(n):
-			self.receive()
-			for i in range(6):
-				mean[i] += self.measurement()[i] / float(n)
-		self.mean = mean
-		return mean
-
-	def zero(self): # Replace by Software bias
-		'''Remove the mean found with `tare` to start receiving raw sensor values.'''
-		self.mean = [0] * 6
-
-	def receiveHandler(self):
-		'''A handler to receive and store data.'''
-		while self.stream:
-			self.receive()
-
-	def getMeasurement(self):
-		'''Get a single measurement from the sensor
-
-		Request a single measurement from the sensor and return it. If
-		The sensor is currently streaming, started by running `startStreaming`,
-		then this function will simply return the most recently returned value.
-
-		Returns:
-			list of float: The force and torque values received. The first three
-				values are the forces recorded, and the last three are the measured
-				torques.
-		'''
-		self.getMeasurements(1)
-		self.receive()
-		return self.data
-
-	def measurement(self):
-		'''Get the most recent force/torque measurement
-
-		Returns:
-			list of float: The force and torque values received. The first three
-				values are the forces recorded, and the last three are the measured
-				torques.
-		'''
-		return self.data
-
-	def getForce(self):
-		'''Get a single force measurement from the sensor
-
-		Request a single measurement from the sensor and return it.
-
-		Returns:
-			list of float: The force values received.
-		'''
-		return self.getMeasurement()[:3]
-
-	def force(self):
-		'''Get the most recent force measurement
-
-		Returns:
-			list of float: The force values received.
-		'''
-		return self.measurement()[:3]
-
-	def getTorque(self):
-		'''Get a single torque measurement from the sensor
-
-		Request a single measurement from the sensor and return it.
-
-		Returns:
-			list of float: The torque values received.
-		'''
-		return self.getMeasurement()[3:]
-
-	def torque(self):
-		'''Get the most recent torque measurement
-
-		Returns:
-			list of float: The torque values received.
-		'''
-		return self.measurement()[3:]
-
-	def startStreaming(self, handler = True):
-		'''Start streaming data continuously
-
-		This function commands the Net F/T box to start sending data continuously.
-		By default this also starts a new thread with a handler to save all data
-		points coming in. These data points can still be accessed with `measurement`,
-		`force`, and `torque`. This handler can also be disabled and measurements
-		can be received manually using the `receive` function.
-
-		Args:
-			handler (bool, optional): If True start the handler which saves data to be
-				used with `measurement`, `force`, and `torque`. If False the
-				measurements must be received manually. Defaults to True.
-		'''
-		self.getMeasurements(0)
-		if handler:
-			self.stream = True
-			self.thread = Thread(target = self.receiveHandler)
-			self.thread.daemon = True
-			self.thread.start()
-
-	def getMeasurements(self, n):
-		'''Request a given number of samples from the sensor
-
-		This function requests a given number of samples from the sensor. These
-		measurements must be received manually using the `receive` function.
-
-		Args:
-			n (int): The number of samples to request.
-		'''
-		self.send(2, count = n)
-
-	def stopStreaming(self):
-		'''Stop streaming data continuously
-
-		This function stops the sensor from streaming continuously as started using
-		`startStreaming`.
-		'''
-		self.stream = False
-		sleep(0.1)
-		self.send(0)
 
 
 def make_parser():
@@ -281,10 +83,10 @@ class FTRecorder(Thread):
         self.output_file = os.path.join(output_dir, "ft_values.csv")
         self.stop_flag = False
         self.lock = Lock()
+        self.latest_ft_data = None
         
         # Initialize subscriber
-        #self.subscriber = rospy.Subscriber("/joint_states", JointState, self.joint_state_callback)
-        self.sensor = Sensor(f=frequency)
+        self.subscriber = rospy.Subscriber("/gripper/ft_sensor", WrenchStamped, self.ft_state_callback)
 
         # Initialize CSV file
         with open(self.output_file, mode='w') as csvfile:
@@ -295,27 +97,44 @@ class FTRecorder(Thread):
         
         self.start()
     
+    def ft_state_callback(self, msg):
+        # Callback to update the latest joint values
+        with self.lock:
+            self.latest_ft_data = {
+                'timestamp': msg.header.stamp.to_sec(),
+                'fx': msg.wrench.force.x,
+                'fy': msg.wrench.force.y,
+                'fz': msg.wrench.force.z,
+                'tx': msg.wrench.torque.x,
+                'ty': msg.wrench.torque.y,
+                'tz': msg.wrench.torque.z,
+            }
+
     def run(self):
-        self.sensor.startStreaming()
-        
         rospy.loginfo("Starting FT value recording at" + str(self.frequency) + " Hz...")
         rate = rospy.Rate(self.frequency)  # ROS rate to control frequency
 
         while not rospy.is_shutdown() and not self.stop_flag:
             with self.lock:
-                if self.sensor.data:
-                    data = np.array(self.sensor.data).copy()
-                    self.write_to_csv(data)
+                if self.latest_ft_data:
+                    self.write_to_csv(self.latest_ft_data)
             rate.sleep()
 
-        self.sensor.stopStreaming()
         rospy.loginfo("FT recording stopped. Output saved to:" +  self.output_file)
 
     def write_to_csv(self, ft_values):
         with open(self.output_file, mode='a') as csvfile:
             writer = csv.writer(csvfile)
             # Write row: timestamp + joint values
-            row = [rospy.get_time()] + [value for value in ft_values.tolist()]
+            row = [
+                self.latest_ft_data['timestamp'],
+                self.latest_ft_data['fx'],
+                self.latest_ft_data['fy'],
+                self.latest_ft_data['fz'],
+                self.latest_ft_data['tx'],
+                self.latest_ft_data['ty'],
+                self.latest_ft_data['tz'],
+            ]
             writer.writerow(row)
 
     def stop(self):

@@ -99,8 +99,8 @@ if __name__ == "__main__":
 	sensor = Sensor()
 
 	try:
-		sensor.startStreaming()
 		rospy.loginfo("Starting Net FT Streaming.." )
+		sensor.startStreaming()
 		rospy.spin() # Keep node alive
 	finally:
 		sensor.stopStreaming()
