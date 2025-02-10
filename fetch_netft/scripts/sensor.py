@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import socket
 import struct
-from threading import Thread
+from threading import Thread, Lock
 import rospy
 from geometry_msgs.msg import WrenchStamped
 import time
@@ -22,14 +22,18 @@ class Sensor:
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sock.connect((ip, self.port))
 		self.stream = False
-		self.cpf= 163.82699 #Counts per Force (NetFT Configuration)
-		self.cpt= 6535.9477 #Counts per Torque (NetFT Configuration)
+		self.cpf= 1000000.0 #Counts per Force (NetFT Configuration)
+		self.cpt= 1000000.0 #Counts per Torque (NetFT Configuration)
+		self.lock = Lock()
 		
 		# Initialize ROS node
 		rospy.init_node('ft_sensor', anonymous = True)
 		self.pub = rospy.Publisher('/gripper/ft_sensor', WrenchStamped, queue_size=10)
 		self.rate = rospy.Rate(f)
-		self.data = []
+		self.data = None
+
+		#Reset NetFT software bias
+		self.send(0x0042)
 
 	def send(self, command, count = 0):
 		'''Send a  command to the NetFT box with specified sample count.
@@ -61,9 +65,9 @@ class Sensor:
 	def receiveHandler(self):
 		'''A handler to receive and store data.'''
 		while self.stream:
-			self.receive()
-			self.publish_to_ros()
-			self.rate.sleep()
+			with self.lock:
+				self.receive()
+			
 
 	def startStreaming(self, handler = True):
 		'''Start streaming data continuously
@@ -82,9 +86,19 @@ class Sensor:
 		self.getMeasurements(0) # Signals NetFT to stream
 		if handler:
 			self.stream = True
-			self.thread = Thread(target = self.receiveHandler)
-			self.thread.daemon = True
-			self.thread.start()
+			self.receiveThread = Thread(target = self.receiveHandler)
+			self.receiveThread.daemon = True
+			self.receiveThread.start()
+			self.publisherThread = Thread(target = self.publisherHandler)
+			self.publisherThread.daemon = True
+			self.publisherThread.start()
+
+	def publisherHandler(self):
+		while self.stream:
+			with self.lock:
+				if self.data:
+					self.publish_to_ros()
+			self.rate.sleep()
 
 	def getMeasurements(self, n):
 		'''Request a given number of samples from the sensor
