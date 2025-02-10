@@ -9,12 +9,10 @@ import time
 class Sensor:
 	'''Class manager for ATI Force/Torque sensor via UDP/RDT.
 	'''
-	def __init__(self, ip= "10.42.42.41", f=float(60)):
-		'''Initialization
-
+	def __init__(self, ip= "10.42.42.41"):
+		'''
 		Args:
 			ip (str): The IP address of the Net F/T box.
-			f (int): Frequency of ROS publishing (Hz)
 		'''
 		# Initialization
 		self.ip = ip
@@ -24,19 +22,17 @@ class Sensor:
 		self.stream = False
 		self.cpf= 1000000.0 #Counts per Force (NetFT Configuration)
 		self.cpt= 1000000.0 #Counts per Torque (NetFT Configuration)
-		self.lock = Lock()
 		
 		# Initialize ROS node
 		rospy.init_node('ft_sensor', anonymous = True)
 		self.pub = rospy.Publisher('/gripper/ft_sensor', WrenchStamped, queue_size=10)
-		self.rate = rospy.Rate(f)
 		self.data = None
 
 		#Reset NetFT software bias
 		self.send(0x0042)
 
 	def send(self, command, count = 0):
-		'''Send a  command to the NetFT box with specified sample count.
+		'''Send a  command to the NetFT using UDP/RDT.
 
 		Args:
 			command (int): The RDT command.
@@ -47,75 +43,37 @@ class Sensor:
 		self.sock.send(message)
 
 	def receive(self): #Receive measurements
-		'''Receives and unpacks a response from the Net F/T box.
-
-		This function receives and unpacks an RDT response from the Net F/T
-		box and saves it to the data class attribute.
-
-		Returns:
-			list of float: The force and torque values received. The first three
-				values are the forces recorded, and the last three are the measured
-				torques.
-		'''
+		'''Receives and unpacks a response from the Net F/T box.'''
 		rawdata = self.sock.recv(1024)
 		data = struct.unpack('!IIIiiiiii', rawdata)[3:]
-		with self.lock():
-			self.data = [data[i] for i in range(6)] # Replace by Software bias
-		return self.data
+		self.data = [data[i] for i in range(6)] # Replace by Software bias
+		return 
 
 	def receiveHandler(self):
 		'''A handler to receive and store data.'''
 		while self.stream:
 			self.receive()
+			self.publish_to_ros()
 			
-
-	def startStreaming(self, handler = True):
-		'''Start streaming data continuously
-
-		This function commands the Net F/T box to start sending data continuously.
-		By default this also starts a new thread with a handler to save all data
-		points coming in. These data points can still be accessed with `measurement`,
-		`force`, and `torque`. This handler can also be disabled and measurements
-		can be received manually using the `receive` function.
-
-		Args:
-			handler (bool, optional): If True start the handler which saves data to be
-				used with `measurement`, `force`, and `torque`. If False the
-				measurements must be received manually. Defaults to True.
-		'''
+	def startStreaming(self):
+		'''Start Data Stream'''
 		self.getMeasurements(0) # Signals NetFT to stream
-		if handler:
-			self.stream = True
-			self.receiveThread = Thread(target = self.receiveHandler)
-			self.receiveThread.daemon = True
-			self.receiveThread.start()
-			self.publisherThread = Thread(target = self.publisherHandler)
-			self.publisherThread.daemon = True
-			self.publisherThread.start()
-
-	def publisherHandler(self):
-		while self.stream:
-			with self.lock:
-				if self.data:
-					self.publish_to_ros()
-			self.rate.sleep()
+		rospy.loginfo("NetFt Stream Started" )
+		self.stream = True
+		self.receiveThread = Thread(target = self.receiveHandler)
+		self.receiveThread.daemon = True
+		self.receiveThread.start()
 
 	def getMeasurements(self, n):
-		'''Request a given number of samples from the sensor
-
-		This function requests a given number of samples from the sensor. These
-		measurements must be received manually using the `receive` function.
+		'''Request measurements from NetFT
 
 		Args:
-			n (int): The number of samples to request.
+			n (int): The number of samples to request. 0 = stream
 		'''
 		self.send(2, count = n)
 
 	def stopStreaming(self):
-		'''Stop streaming data continuously
-
-		This function stops the sensor from streaming continuously as started using
-		`startStreaming`.
+		'''Stop NetFT streaming from data continuously
 		'''
 		self.stream = False
 		time.sleep(0.1)
@@ -138,12 +96,11 @@ class Sensor:
 
 
 if __name__ == "__main__":
-	frequency = rospy.get_param('/ft_sensor/frequency', 60.0)
-	sensor = Sensor(f=frequency)
+	sensor = Sensor()
 
 	try:
 		sensor.startStreaming()
-		rospy.loginfo("Starting Net FT Streaming at " + str(frequency) +" Hz." )
+		rospy.loginfo("Starting Net FT Streaming.." )
 		rospy.spin() # Keep node alive
 	finally:
 		sensor.stopStreaming()
