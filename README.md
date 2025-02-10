@@ -42,14 +42,14 @@ To calibrate our updated robot we had to make some adjustments to the files used
 ```
 If you have sudo privilege the robot drivers will restart immediately after performing the calibration. i.e. the arm will become unactuated and fall. We also recommend using the *velocity-factor* argument to reduce the speed of the robot.
 
-## fetch_Netft package
+## fetch_netft package
 To interface with the ATI sensor NetFT device, we developed a ROS package that let's you activate the NetFT UDP/RDT data stream and publish the values to a rostopic. We assigned the NetFT the IP address: 10.42.42.41 on the Fetch internal network. The [sensor.py](/fetch_netft/scripts/sensor.py) script connects to the NetFT and publishes the wrench values as `WrenchStamped` in the `/gripper/ft_sensor` topic. You can initialize the sensor data stream by running the launch file:
 
 ```Shell
 roslaunch fetch_netft netft.launch
 ```
 
-Our published values are with respect to our fetch.urdf `ati_link`. 
+The published Wrench values are with respect to our fetch.urdf `ati_link`. 
 
 ### Notes
 - The tuck_arm routine [tuck_arm.py](/fetch_teleop/scripts/tuck_arm.py) was modified to account for our new robot model and to ensure no collisions with the installed equipment. For our robot the script was located within the '/opt/ros/melodic/lib/fetch_teleop/' directory.
