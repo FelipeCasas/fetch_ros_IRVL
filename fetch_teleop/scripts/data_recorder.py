@@ -461,7 +461,7 @@ class RGBD_Recorder(Thread):
         cv2.imwrite(rgb_file, rgb_frame_bgr)
 
         # Save depth frame as .png
-        depth_file = os.path.join(self.output_dir, "depth_"+self.counter+".png")
+        depth_file = os.path.join(self.output_dir, "depth_"+str(self.counter)+".png")
         depth_normalized = np.uint16(depth_frame * 1000)  # Convert to 16-bit integer (common for depth)
         cv2.imwrite(depth_file, depth_normalized)
 
