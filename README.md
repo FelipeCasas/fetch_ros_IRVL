@@ -2,6 +2,22 @@
 
 ROS Components for Robots from Fetch Robotics used at the Intelligent Robotics and Vision Lab at the University of Texas at Dallas. Our Fetch Robot uses an ATI-Gamma F/T sensor at the wrist; in this forked repository you will find the updated components for our robot, such as the new .urdf, moveit configuration, and a ros package to interface with the sensor. 
 
+### Table of Contents
+
+- [fetch\_ros\_IRVL](#fetch_ros_irvl)
+    - [Table of Contents](#table-of-contents)
+  - [New .Urdf](#new-urdf)
+    - [Moveit Configuration](#moveit-configuration)
+    - [Robot Calibration](#robot-calibration)
+      - [Notes](#notes)
+  - [fetch\_netft package](#fetch_netft-package)
+    - [Notes](#notes-1)
+  - [New Deformable Fingers](#new-deformable-fingers)
+- [fetch\_ros Original Readme.md](#fetch_ros-original-readmemd)
+  - [Documentation](#documentation)
+  - [ROS Buildfarm Development Branches](#ros-buildfarm-development-branches)
+  - [ROS Buildfarm Release](#ros-buildfarm-release)
+
 ## New .Urdf 
 
 As mentioned before, our Fetch robot is equipped with an ATI-Gamma force and torque sensor at the wrist. Consequently, the original .urdf can no longer be used for the proper control of the robot. We created a new .urdf [fetch.urdf](/fetch_description/robots/fetch.urdf) to replace the original at the fetch_description base ros package located within the '/opt/ros/' directory. 
@@ -31,7 +47,7 @@ After the changes have been made, ensure they are loaded by restarting the rosco
     sudo service roscore restart
 ```
 
-## Robot Calibration
+### Robot Calibration
 To calibrate our updated robot we had to make some adjustments to the files used in the calibration process referred to at the [Fetch and Freight manual](https://docs.fetchrobotics.com/calibration.html). The calibration robot process uses the RGB-D camera to detect the positions of 4 LEDs in the Gripper while performing 99 different poses. To calibrate the new robot model we had to: 
 
 1) Modify the calibration poses in [calibration_poses.bag](/fetch_calibration/config/calibration_poses.bag) to ensure that the LEDs are visible by the RGB-D camera. This was done using the script [modify_poses.py](/fetch_calibration/config/modify_poses.py) by adding an offset to the *wrist_roll_joint*. 
@@ -41,6 +57,10 @@ To calibrate our updated robot we had to make some adjustments to the files used
     calibrate_robot --arm --install --velocity-factor=0.5
 ```
 If you have sudo privilege the robot drivers will restart immediately after performing the calibration. i.e. the arm will become unactuated and fall. We also recommend using the *velocity-factor* argument to reduce the speed of the robot.
+
+#### Notes
+- The tuck_arm routine [tuck_arm.py](/fetch_teleop/scripts/tuck_arm.py) was modified to account for our new robot model and to ensure no collisions with the installed equipment. For our robot the script was located within the '/opt/ros/melodic/lib/fetch_teleop/' directory.
+- We included our calibrated model in [calibrated_files](/fetch_description/robots/calibrated/).
 
 ## fetch_netft package
 To interface with the ATI sensor NetFT device, we developed a ROS package that let's you activate the NetFT UDP/RDT data stream and publish the values to a rostopic. We assigned the NetFT the IP address: 10.42.42.41 on the Fetch internal network. The [sensor.py](/fetch_netft/scripts/sensor.py) script connects to the NetFT and publishes the wrench values as `WrenchStamped` in the `/gripper/ft_sensor` topic. You can initialize the sensor data stream by running the launch file:
@@ -52,8 +72,7 @@ roslaunch fetch_netft netft.launch
 The published Wrench values are with respect to our fetch.urdf `ati_link`. 
 
 ### Notes
-- The tuck_arm routine [tuck_arm.py](/fetch_teleop/scripts/tuck_arm.py) was modified to account for our new robot model and to ensure no collisions with the installed equipment. For our robot the script was located within the '/opt/ros/melodic/lib/fetch_teleop/' directory.
-- We included our calibrated model in [calibrated_files](/fetch_description/robots/calibrated/).
+
 - You can find the UDP interface documentation in the [NetFT Manual](https://www.ati-ia.com/app_content/documents/9610-05-1022.pdf).
 
 ## New Deformable Fingers
