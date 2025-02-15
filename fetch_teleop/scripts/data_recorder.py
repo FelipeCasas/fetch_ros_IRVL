@@ -170,8 +170,9 @@ class JointValueRecorder(Thread):
             for i, name in enumerate(msg.name):
                 if name in self.joint_names:
                     joint_values[name] = msg.position[i]
-            self.latest_joint_values = joint_values
-            self.timestamp = msg.header.stamp.to_sec()
+            if "torso_lift_joint" in joint_values.keys():
+                self.latest_joint_values = joint_values
+                self.timestamp = msg.header.stamp.to_sec()
 
     def run(self):
         rospy.loginfo("Starting joint value recording at" + str(self.frequency) + " Hz...")
